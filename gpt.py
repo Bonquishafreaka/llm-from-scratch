@@ -8,6 +8,7 @@ vocab_size = 65      # from your tokenizer
 n_embd = 32
 block_size = 8
 head_size = 32
+device = 'cuda' if torch.cuda.is_available() else 'cpu'   # <-- ADD THIS LINE
 
 
 class GPTLanguageModel(nn.Module):
@@ -23,7 +24,7 @@ class GPTLanguageModel(nn.Module):
         B, T = idx.shape
 
         tok_emb = self.token_embedding_table(idx)                       # [B, T, n_embd]
-        pos_emb = self.position_embedding_table(torch.arange(T))        # [T, n_embd]
+        pos_emb = self.position_embedding_table(torch.arange(T, device=device))        # [T, n_embd]
         x = tok_emb + pos_emb                                           # combine
         x = self.block(x)                                               # refine
         x = self.ln_f(x)
@@ -68,9 +69,11 @@ if __name__ == "__main__":
         ix = torch.randint(len(data) - block_size, (batch_size,))
         x = torch.stack([data[i:i+block_size] for i in ix])
         y = torch.stack([data[i+1:i+block_size+1] for i in ix])
+        x, y = x.to(device), y.to(device)
         return x, y
 
     model = GPTLanguageModel()
+    model = model.to(device)
 
     # the optimizer: applies the weight nudges
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -89,7 +92,11 @@ if __name__ == "__main__":
 
     # --- generate some text ---
     from tokenizer import decode
-    context = torch.zeros((1, 1), dtype=torch.long)   # start with token 0 (newline)
+    context = torch.zeros((1, 1), dtype=torch.long, device=device)   # start with token 0 (newline)
     generated = model.generate(context, max_new_tokens=300)
     print("\n----- GENERATED TEXT -----")
     print(decode(generated[0].tolist()))
+
+    # --- save the trained weights ---
+    torch.save(model.state_dict(), "model.pt")
+    print("saved weights to model.pt")

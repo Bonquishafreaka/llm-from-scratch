@@ -5,9 +5,11 @@ from block import Block
 
 # --- hyperparameters (our settings) ---
 vocab_size = 65      # from your tokenizer
-n_embd = 32
-block_size = 8
-head_size = 32
+n_embd = 192
+block_size = 128
+n_head = 6            # number of attention heads per block
+n_layer = 6           # number of transformer blocks stacked (was 1)
+head_size = n_embd // n_head   # each head's size, auto-computed
 device = 'cuda' if torch.cuda.is_available() else 'cpu'   # <-- ADD THIS LINE
 
 
@@ -16,7 +18,7 @@ class GPTLanguageModel(nn.Module):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.block = Block(n_embd, head_size, block_size)   # one block for now
+        self.blocks = nn.Sequential(*[Block(n_embd, head_size, block_size) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd)                    # final normalization
         self.lm_head = nn.Linear(n_embd, vocab_size)        # -> one score per character
 
@@ -26,7 +28,7 @@ class GPTLanguageModel(nn.Module):
         tok_emb = self.token_embedding_table(idx)                       # [B, T, n_embd]
         pos_emb = self.position_embedding_table(torch.arange(T, device=device))        # [T, n_embd]
         x = tok_emb + pos_emb                                           # combine
-        x = self.block(x)                                               # refine
+        x = self.blocks(x)                                               # refine
         x = self.ln_f(x)
         logits = self.lm_head(x)                                        # [B, T, vocab_size]
 
@@ -58,10 +60,10 @@ if __name__ == "__main__":
     # bring in the real data
     from tokenizer import train_data, val_data
 
-    batch_size = 32          # how many chunks we train on at once
-    max_iters = 3000         # how many training steps
-    eval_interval = 300      # how often to print progress
-    learning_rate = 1e-3     # how big each weight nudge is
+    batch_size = 64          # how many chunks we train on at once
+    max_iters = 5000         # how many training steps
+    eval_interval = 500      # how often to print progress
+    learning_rate = 3e-4     # how big each weight nudge is
 
     def get_batch(split):
         data = train_data if split == 'train' else val_data

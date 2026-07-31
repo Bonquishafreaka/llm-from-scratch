@@ -17,26 +17,28 @@ def encode(s):
 def decode(ids):
     return "".join([itos[i] for i in ids])
 
-# Let's look at what we've got
-print("length of text in characters:", len(text))
-print("vocab size:", vocab_size)
-print("vocabulary:", "".join(chars))
-print()
-print("first 200 characters of the data:")
-print(text[:200])
-print()
-print("those same 200 characters encoded as numbers:")
-print(encode(text[:200]))
 import torch
 
 # Encode the ENTIRE dataset into one long tensor of numbers
 data = torch.tensor(encode(text), dtype=torch.long)
-print()
-print("full dataset as a tensor:", data.shape, data.dtype)
 
 # Split: first 90% for training, last 10% held back for validation
 n = int(0.9 * len(data))
 train_data = data[:n]
 val_data = data[n:]
-print("training set size:", len(train_data))
-print("validation set size:", len(val_data))
+
+# Demo output -- only runs when you run tokenizer.py DIRECTLY, not on import
+if __name__ == "__main__":
+    print("length of text in characters:", len(text))
+    print("vocab size:", vocab_size)
+    print("vocabulary:", "".join(chars))
+    print()
+    print("first 200 characters of the data:")
+    print(text[:200])
+    print()
+    print("those same 200 characters encoded as numbers:")
+    print(encode(text[:200]))
+    print()
+    print("full dataset as a tensor:", data.shape, data.dtype)
+    print("training set size:", len(train_data))
+    print("validation set size:", len(val_data))
